@@ -1,5 +1,6 @@
 package org.srobo.ide.api;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -8,12 +9,11 @@ import org.json.JSONObject;
 
 public abstract class Module {
     private final String module;
-    private RequestService con;
-    private HashMap<String, Object> required;
+    private final RequestService con = SRAPI.con;
+    private Map<String, Object> required;
 
-    public Module(String module, RequestService con) {
-        this.module = module;
-        this.con = con;
+    public Module(String moduleName) {
+        this.module = moduleName;
         this.required = null;
     }
 
@@ -27,10 +27,9 @@ public abstract class Module {
         if (required != null) {
             if (input == null)
                 input = new JSONObject();
-            Iterator<?> i = required.entrySet().iterator();
+            Iterator<Map.Entry<String, Object>> i = required.entrySet().iterator();
             while (i.hasNext()) {
-                @SuppressWarnings("unchecked")
-                Map.Entry<String, Object> e = (Map.Entry<String, Object>) i.next();
+                Map.Entry<String, Object> e = i.next();
                 Object value = e.getValue();
                 input.put(e.getKey(), value);
             }
@@ -44,5 +43,9 @@ public abstract class Module {
 
     protected JSONObject sendCommand(String command) throws SRException {
         return sendCommand(command, null);
+    }
+
+    public void getResourceAsStream(String path, InputStreamHandler<InputStream> callback) {
+        con.getResourceAsStream(path, callback);
     }
 }

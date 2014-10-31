@@ -9,7 +9,6 @@ public class SRException extends Exception {
     private String stacktrace;
 
     public SRException(JSONArray error) {
-        super();
         code = error.getInt(0);
         message = error.getString(1);
         stacktrace = error.getString(2);

@@ -2,22 +2,25 @@ package org.srobo.ide.api;
 
 public abstract class AbstractFile extends Module {
 
-    protected String name;
-    protected SRTree parentTree;
-    protected SRProject project;
+    private String name;
+    private final SRTree parentTree;
+    protected final SRProject project;
 
-    public AbstractFile(RequestService con, SRProject project, SRTree parentTree, String name) {
-        super("file", con);
+    AbstractFile(SRProject project, SRTree parentTree, String name) {
+        super("file");
         addRequiredData("team", project.getTeam().id);
         addRequiredData("project", project.getName());
         this.parentTree = parentTree;
         this.project = project;
-        if (name != null)
-            setName(name);
+        this.name = name;
     }
 
     public final String getName() {
         return name;
+    }
+
+    protected void setName(String name) {
+        this.name = name;
     }
 
     public String getPath() {
@@ -28,15 +31,9 @@ public abstract class AbstractFile extends Module {
         return parentTree;
     }
 
-    private void setName(String name) {
-        this.name = name;
-    }
-
     public String getHostProject() {
         return project.getName();
     }
 
     public abstract void delete() throws SRException;
-
-    // public abstract void delete() throws SRException;
 }

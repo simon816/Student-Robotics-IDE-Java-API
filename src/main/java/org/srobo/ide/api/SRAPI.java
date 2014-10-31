@@ -1,34 +1,37 @@
 package org.srobo.ide.api;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 
 public class SRAPI {
-    private RequestService con;
+    static final RequestService con;
     private Auth auth;
-    private SRUser currentUser;
-    public final static String VERSION = "0.1";
+    private static SRUser currentUser;
+    public final static String VERSION = "0.4";
+
+    static {
+        try {
+            // con = new RequestService("http://localhost/", "control.php/");
+            con = new RequestService("https://www.studentrobotics.org/ide/", "control.php/");
+        } catch (MalformedURLException e) {
+            // never happens
+            throw new RuntimeException(e);
+        }
+    }
 
     public SRAPI() {
-        try {
-            // con = new RequestService(new URL("http://localhost/ide/control.php/"));
-            con = new RequestService(new URL("https://www.studentrobotics.org/ide/control.php/"));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        auth = new Auth(con);
+        auth = new Auth();
     }
 
     public SRUser login(String username, String password) throws SRException {
         auth.login(username, password);
-        currentUser = new SRUser(con, username);
+        currentUser = new SRUser(username);
         return currentUser;
     }
 
     public SRUser Tlogin(String username, String token) throws SRException {
         con.setToken(token);
         try {
-            currentUser = new SRUser(con, username);
+            currentUser = new SRUser(username);
             auth._setLogin();
         } catch (SRException e) {
             if (e.getCode() == ErrorConstants.E_BAD_AUTH_TOKEN.code)
@@ -40,8 +43,14 @@ public class SRAPI {
 
     public boolean logout() {
         boolean l = auth.logout();
-        if (l)
+        if (l) {
             con.deleteToken();
+            if (currentUser != null) {
+                for (SRTeam team : currentUser.getTeams()) {
+                    team.poll.stop();
+                }
+            }
+        }
         return l;
     }
 
@@ -49,7 +58,11 @@ public class SRAPI {
         return con.getToken();
     }
 
-    public SRUser getCurrentUser() {
+    public static SRUser getCurrentUser() {
         return currentUser;
+    }
+
+    public static void setCurrentUser(SRUser user) {
+        currentUser = user;
     }
 }

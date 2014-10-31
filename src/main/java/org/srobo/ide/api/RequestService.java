@@ -2,25 +2,60 @@ package org.srobo.ide.api;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.json.JSONObject;
 
 class RequestService {
+
     private static final String TOKEN_NAME = "token";
+    private final URL rootURL;
     private final URL controlURL;
     private Map<String, List<String>> headers;
     private String token;
-    private SRUser cUser;
 
-    public RequestService(URL control) {
-        controlURL = control;
-        cUser = null;
+    public RequestService(String root, String controlEndpoint) throws MalformedURLException {
+        rootURL = new URL(root);
+        controlURL = new URL(rootURL, controlEndpoint);
+    }
+
+    private void getRequest(String path, InputStreamHandler<InputStream> callback) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(rootURL, path).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "SRAPI/" + SRAPI.VERSION + "");
+            if (token != null) {
+                connection.setRequestProperty("Cookie", TOKEN_NAME + "=" + token);
+            }
+            connection.setUseCaches(false);
+            connection.setDoInput(true);
+            connection.setDoOutput(false);
+            stream(connection, callback);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+    }
+
+    private void stream(HttpURLConnection connection, InputStreamHandler<InputStream> callback) {
+        try {
+            callback.handleData(connection.getInputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        } finally {
+            if (connection != null)
+                connection.disconnect();
+        }
     }
 
     private String postRequest(String path, String data) {
@@ -96,6 +131,10 @@ class RequestService {
         return putRequest(module + "/" + command, jtext);
     }
 
+    public void getResourceAsStream(String path, InputStreamHandler<InputStream> callback) {
+        getRequest(path, callback);
+    }
+
     public Map<String, List<String>> getHeaders() {
         return headers;
     }
@@ -124,12 +163,5 @@ class RequestService {
             return false;
         token = null;
         return true;
-    }
-
-    public void _setUser(SRUser user) {
-        cUser = user;
-    }
-    public SRUser getUser() {
-        return cUser;
     }
 }

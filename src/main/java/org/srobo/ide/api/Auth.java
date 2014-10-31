@@ -6,8 +6,8 @@ public class Auth extends Module {
 
     private boolean loggedin;
 
-    public Auth(RequestService con) {
-        super("auth", con);
+    public Auth() {
+        super("auth");
         loggedin = false;
     }
 

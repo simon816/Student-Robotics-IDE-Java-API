@@ -1,18 +1,17 @@
 package org.srobo.ide.api;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class SRTree extends AbstractFile {
 
-    private ArrayList<AbstractFile> tree;
-    private RequestService con;
+    private List<AbstractFile> tree;
 
-    public SRTree(RequestService con, SRProject project, SRTree parentTree, String name) {
-        super(con, project, parentTree, name);
-        this.con = con;
+    public SRTree(SRProject project, SRTree parentTree, String name) {
+        super(project, parentTree, name);
         tree = new ArrayList<AbstractFile>();
     }
 
@@ -28,9 +27,9 @@ public class SRTree extends AbstractFile {
         for (int i = 0; i < files.length(); i++) {
             String fileName = files.getString(i);
             if (fileName.endsWith("/")) {
-                tree.add(new SRTree(con, project, this, fileName));
+                tree.add(new SRTree(project, this, fileName));
             } else {
-                tree.add(new SRFile(con, project, this, fileName, null));
+                tree.add(new SRFile(project, this, fileName, null));
             }
         }
         return getEntries();
@@ -42,7 +41,7 @@ public class SRTree extends AbstractFile {
 
     @Override
     public String toString() {
-        return "SRTree(" + name + " <" + getPath() + "> " + tree + ")";
+        return "SRTree(" + getName() + " <" + getPath() + "> " + tree + ")";
     }
 
     @Override
@@ -53,7 +52,7 @@ public class SRTree extends AbstractFile {
     }
 
     public boolean isRoot() {
-        return parentTree == null;
+        return getParent() == null;
     }
 
     public ArrayList<SRFile> getStagedChanges() {
@@ -83,15 +82,15 @@ public class SRTree extends AbstractFile {
     public void delete() throws SRException {
         for (AbstractFile file : tree) {
             file.delete();
-            tree.remove(file);
         }
+        tree.clear();
     }
 
     public SRTree makeNewTree(String name) throws SRException {
         JSONObject input = new JSONObject();
         input.put("path", getPath() + name + "/");
         if (sendCommand("mkdir", input).getInt("success") == 1) {
-            return new SRTree(con, project, this, name);
+            return new SRTree(project, this, name);
         }
         return null;
     }
@@ -100,8 +99,7 @@ public class SRTree extends AbstractFile {
         JSONObject input = new JSONObject();
         input.put("path", getPath() + name);
         sendCommand("new", input);
-        SRFile file = new SRFile(con, project, this, name, null);
-        file.putContents(""); // The command 'new' does not seem to work, the 'put' command must be called
+        SRFile file = new SRFile(project, this, name, null);
         addFile(file);
         return file;
     }

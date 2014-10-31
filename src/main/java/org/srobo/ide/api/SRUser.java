@@ -1,6 +1,7 @@
 package org.srobo.ide.api;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class SRUser extends Module {
@@ -12,9 +13,8 @@ public class SRUser extends Module {
     private String displayName;
     private JSONObject settings;
 
-    public SRUser(RequestService con, String username) throws SRException {
-        super("user", con);
-        con._setUser(this);
+    public SRUser(String username) throws SRException {
+        super("user");
         this.username = username;
         JSONObject output = sendCommand("info");
         displayName = output.getString("display-name");
@@ -23,10 +23,16 @@ public class SRUser extends Module {
         this.teams = new SRTeam[teams.length()];
         for (int i = 0; i < teams.length(); i++) {
             JSONObject team = teams.getJSONObject(i);
-            this.teams[i] = new SRTeam(con, team.getString("id"), team.getString("name"), team.getBoolean("readOnly"));
+            this.teams[i] = new SRTeam(team.getString("id"), team.getString("name"), team.getBoolean("readOnly"));
         }
         isAdmin = output.getBoolean("is-admin");
-        settings = output.getJSONObject("settings");
+        try {
+            settings = output.getJSONObject("settings");
+        } catch (JSONException e) {
+            // Settings is an empty array (not object) if settings are empty
+            // because of PHP's json_encode(array()) -> []
+            settings = new JSONObject();
+        }
         switchTeam(0);
     }
 
@@ -34,7 +40,7 @@ public class SRUser extends Module {
         if (i >= 0 && i < teams.length) {
             currentTeam = teams[i];
         }
-        return getTeam();
+        return currentTeam;
     }
 
     public SRTeam getTeam() {
